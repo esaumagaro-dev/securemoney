@@ -1,4 +1,4 @@
-from flask import request, current_app
+from flask import request
 from .models import db, AuditLog
 import json
 

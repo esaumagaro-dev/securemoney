@@ -27,7 +27,7 @@ def jwt_required(f):
         payload = _decode_token(token)
         if not payload:
             return jsonify({"msg": "Invalid or expired token"}), 401
-        user = User.query.get(payload.get("uid"))
+        user = db.session.get(User, payload.get("uid"))
         if not user:
             return jsonify({"msg": "User not found"}), 401
         g.user = user

@@ -1,4 +1,8 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask
+from flask_cors import CORS
 from .config import Config
 from .models import db
 from .rate_limit import init_limiter
@@ -12,6 +16,7 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
+    CORS(app, origins=app.config.get("CORS_ORIGINS", "*"), supports_credentials=True)
     if not app.config.get("MASTER_KEY"):
         # In development allow but warn
         app.logger.warning("MASTER_KEY is not set; using insecure default for development")

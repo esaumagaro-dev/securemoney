@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request, g, current_app
-from ..models import User, Role, AuditLog, db
+from ..models import User, Role, AuditLog, Transaction, Wallet, db
 from ..utils import jwt_required, roles_required
 from ..audit import audit_log
 
@@ -47,13 +47,15 @@ def create_role():
 @jwt_required
 @roles_required(["admin", "auditor"])
 def get_audit():
-    # Filter by date, user, action
     page = int(request.args.get("page", 1))
     per_page = min(int(request.args.get("per_page", current_app.config['DEFAULT_PAGE_SIZE'])), current_app.config['MAX_PAGE_SIZE'])
-    q = AuditLog.query.order_by(AuditLog.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    action_filter = request.args.get("action")
+    q = AuditLog.query.order_by(AuditLog.created_at.desc())
+    if action_filter:
+        q = q.filter(AuditLog.action == action_filter)
+    q = q.paginate(page=page, per_page=per_page, error_out=False)
     items = []
     for a in q.items:
-        # details_encrypted will be decrypted by EncryptedType on access
         items.append({
             "id": a.id,
             "user_id": a.user_id,
@@ -64,4 +66,28 @@ def get_audit():
             "ip": a.ip,
             "created_at": a.created_at.isoformat()
         })
-    return jsonify({"logs": items, "total": q.total}), 200
+    return jsonify({"logs": items, "total": q.total, "page": page}), 200
+
+@bp.route("/analytics", methods=["GET"])
+@jwt_required
+@roles_required(["admin"])
+def analytics():
+    total_users = User.query.count()
+    total_transactions = Transaction.query.count()
+    total_wallets = Wallet.query.count()
+    recent_users = User.query.order_by(User.created_at.desc()).limit(5).all()
+    users_data = [{"id": u.id, "email": u.email, "created_at": u.created_at.isoformat()} for u in recent_users]
+    return jsonify({
+        "total_users": total_users,
+        "total_transactions": total_transactions,
+        "total_wallets": total_wallets,
+        "recent_users": users_data
+    }), 200
+
+@bp.route("/roles", methods=["GET"])
+@jwt_required
+@roles_required(["admin"])
+def list_roles():
+    roles = Role.query.all()
+    items = [{"id": r.id, "name": r.name, "permissions": r.permissions} for r in roles]
+    return jsonify({"roles": items}), 200

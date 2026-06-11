@@ -1,5 +1,4 @@
 import pytest
-from decimal import Decimal
 from run import app as flask_app
 from app.models import db, Role, User, Wallet
 
@@ -12,9 +11,11 @@ def app():
     })
     with flask_app.app_context():
         db.create_all()
-        role = Role(name="user", permissions={})
-        db.session.add(role)
-        db.session.commit()
+        role = Role.query.filter_by(name="user").first()
+        if not role:
+            role = Role(name="user", permissions={})
+            db.session.add(role)
+            db.session.commit()
     yield flask_app
 
 def test_transfer_insufficient(client, app):
@@ -23,4 +24,4 @@ def test_transfer_insufficient(client, app):
     r = client.post("/api/auth/login", json={"email":"a@example.com","password":"P@ssw0rd"})
     token = r.get_json().get("access_token")
     rv = client.post("/api/user/transfer", json={"from_wallet": "nonexistent", "to_wallet": "nonexistent", "amount": "10"}, headers={"Authorization": f"Bearer {token}"})
-    assert rv.status_code in (400, 401, 500)
+    assert rv.status_code == 400

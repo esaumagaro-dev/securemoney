@@ -11,8 +11,12 @@ def app():
     })
     with flask_app.app_context():
         db.create_all()
-        db.session.add(Role(name="user", permissions={}))
-        db.session.add(Role(name="admin", permissions={}))
+        role_user = Role.query.filter_by(name="user").first()
+        if not role_user:
+            db.session.add(Role(name="user", permissions={}))
+        role_admin = Role.query.filter_by(name="admin").first()
+        if not role_admin:
+            db.session.add(Role(name="admin", permissions={}))
         db.session.commit()
     yield flask_app
 

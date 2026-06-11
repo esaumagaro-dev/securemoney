@@ -3,12 +3,12 @@ from datetime import timedelta
 
 class Config:
     # Flask / App
-    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me")
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-change-me-to-a-long-random-string-32bytes")
     ENV = os.getenv("FLASK_ENV", "production")
     DEBUG = ENV != "production"
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL")
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'dev.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Key management

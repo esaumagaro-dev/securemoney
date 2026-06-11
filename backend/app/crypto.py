@@ -4,7 +4,6 @@ import json
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import PBKDF2
-from hashlib import sha256
 from typing import Tuple
 
 from flask import current_app

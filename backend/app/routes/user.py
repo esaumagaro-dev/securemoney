@@ -1,7 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, g
-from ..models import db, User, Wallet, Transaction, AuditLog
-from ..crypto import encrypt_bytes, decrypt_bytes, pack_encrypted, unpack_encrypted
-from ..auth import load_jwt_keys
+from ..models import db, User, Wallet, Transaction, AuditLog, Notification
+from ..auth import load_jwt_keys, create_access_token, create_refresh_token
 import jwt
 from decimal import Decimal
 from ..audit import audit_log
@@ -27,11 +26,13 @@ def verify_jwt_from_header():
 
 @bp.before_request
 def load_user():
+    if request.path == "/api/auth/refresh":
+        return
     payload = verify_jwt_from_header()
     if not payload:
         g.user = None
         return
-    g.user = User.query.get(payload.get("uid"))
+    g.user = db.session.get(User, payload.get("uid"))
 
 @bp.route("/balance", methods=["GET"])
 def balance():
@@ -40,8 +41,7 @@ def balance():
     wallets = Wallet.query.filter_by(user_id=g.user.id).all()
     out = []
     for w in wallets:
-        balance = w.balance_encrypted
-        out.append({"wallet_id": w.id, "currency": w.currency, "balance": balance})
+        out.append({"wallet_id": w.id, "currency": w.currency, "balance": w.balance_encrypted})
     return jsonify({"wallets": out}), 200
 
 @bp.route("/transfer", methods=["POST"])
@@ -68,7 +68,79 @@ def transfer():
         db.session.add(tx)
         db.session.commit()
         audit_log(g.user.id, "transfer", "transaction", tx.id, {"amount": str(amount_dec), "from": from_wallet.id, "to": to_wallet.id})
+        _create_notification(g.user.id, "transfer", f"Transfer of {amount_dec} {from_wallet.currency} completed", tx.id)
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg":"Transfer failed"}), 500
     return jsonify({"msg":"Transfer completed", "tx_id": tx.id}), 200
+
+@bp.route("/transactions", methods=["GET"])
+def transactions():
+    if not g.user:
+        return jsonify({"msg":"Unauthorized"}), 401
+    page = int(request.args.get("page", 1))
+    per_page = min(int(request.args.get("per_page", 25)), 200)
+    wallet_ids = [w.id for w in Wallet.query.filter_by(user_id=g.user.id).all()]
+    q = Transaction.query.filter(
+        (Transaction.from_wallet_id.in_(wallet_ids)) | (Transaction.to_wallet_id.in_(wallet_ids))
+    ).order_by(Transaction.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    items = []
+    for t in q.items:
+        items.append({
+            "id": t.id,
+            "from_wallet_id": t.from_wallet_id,
+            "to_wallet_id": t.to_wallet_id,
+            "amount": t.amount_encrypted,
+            "currency": t.currency,
+            "type": t.type,
+            "status": t.status,
+            "created_at": t.created_at.isoformat()
+        })
+    return jsonify({"transactions": items, "total": q.total, "page": page}), 200
+
+@bp.route("/profile", methods=["GET"])
+def profile():
+    if not g.user:
+        return jsonify({"msg":"Unauthorized"}), 401
+    u = g.user
+    return jsonify({
+        "id": u.id,
+        "email": u.email,
+        "full_name": u.full_name_encrypted,
+        "phone": u.phone_encrypted,
+        "role": u.role.name if u.role else None,
+        "mfa_enabled": u.mfa_enabled,
+        "created_at": u.created_at.isoformat()
+    }), 200
+
+@bp.route("/notifications", methods=["GET"])
+def notifications():
+    if not g.user:
+        return jsonify({"msg":"Unauthorized"}), 401
+    page = int(request.args.get("page", 1))
+    per_page = min(int(request.args.get("per_page", 50)), 200)
+    q = Notification.query.filter_by(user_id=g.user.id).order_by(Notification.created_at.desc()).paginate(page=page, per_page=per_page, error_out=False)
+    items = []
+    for n in q.items:
+        items.append({
+            "id": n.id,
+            "type": n.type,
+            "message": n.message,
+            "resource_id": n.resource_id,
+            "read": n.read,
+            "created_at": n.created_at.isoformat()
+        })
+    return jsonify({"notifications": items, "total": q.total}), 200
+
+@bp.route("/notifications/read", methods=["POST"])
+def mark_notifications_read():
+    if not g.user:
+        return jsonify({"msg":"Unauthorized"}), 401
+    Notification.query.filter_by(user_id=g.user.id, read=False).update({"read": True})
+    db.session.commit()
+    return jsonify({"msg":"ok"}), 200
+
+def _create_notification(user_id, ntype, message, resource_id=None):
+    n = Notification(user_id=user_id, type=ntype, message=message, resource_id=resource_id)
+    db.session.add(n)
+    db.session.commit()

@@ -18,7 +18,7 @@ const links = [
   { to: "/history", labelKey: "History", icon: Clock },
   { to: "/security", labelKey: "Security", icon: Shield },
   { to: "/notifications", labelKey: "Notifications", icon: Bell },
-  { to: "/admin", labelKey: "Admin", icon: ShieldCheck, adminOnly: true },
+  { to: "/secure-admin/dashboard", labelKey: "Admin", icon: ShieldCheck, adminOnly: true },
 ];
 
 interface SidebarProps {

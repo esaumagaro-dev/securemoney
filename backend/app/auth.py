@@ -5,6 +5,7 @@ from .models import db, User, Role, Wallet
 from argon2 import PasswordHasher, exceptions as argon_exceptions
 import pyotp
 import jwt
+from .email_service import send_otp_email
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -113,6 +114,10 @@ def login():
         totp = pyotp.TOTP(secret)
         if not totp.verify(token, valid_window=1):
             return jsonify({"msg":"Invalid MFA token"}), 403
+    # Email OTP as second factor (if enabled and TOTP is not enabled)
+    elif current_app.config.get("FEATURE_EMAIL_OTP", False):
+        send_otp_email(user.email)
+        return jsonify({"otp_required": True, "msg": "OTP sent to your email"}), 403
     roles = [user.role.name] if user.role else []
     access = create_access_token(user.email, user.id, roles)
     refresh = create_refresh_token(user.id)

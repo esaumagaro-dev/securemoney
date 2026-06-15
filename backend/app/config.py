@@ -63,10 +63,12 @@ class Config:
     DEFAULT_PAGE_SIZE = int(os.getenv("DEFAULT_PAGE_SIZE", "25"))
     MAX_PAGE_SIZE = int(os.getenv("MAX_PAGE_SIZE", "200"))
 
-    # Email / notifications (placeholders - configure in production)
-    MAIL_FROM = os.getenv("MAIL_FROM", "noreply@securemoney.example")
+    # Email / SendGrid
+    SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY", "")
+    MAIL_FROM = os.getenv("MAIL_FROM", "noreply@securemoney.co.tz")
     MAILER_URL = os.getenv("MAILER_URL", "")
 
     # Feature flags (for gradual rollout / testing)
     FEATURE_MFA = os.getenv("FEATURE_MFA", "True").lower() in ("1", "true", "yes")
+    FEATURE_EMAIL_OTP = os.getenv("FEATURE_EMAIL_OTP", "False").lower() in ("1", "true", "yes")
     FEATURE_ADMIN_AUDIT_SEARCH = os.getenv("FEATURE_ADMIN_AUDIT_SEARCH", "True").lower() in ("1", "true", "yes")

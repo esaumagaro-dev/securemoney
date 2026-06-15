@@ -15,6 +15,10 @@ interface AuthContextType {
   register: (email: string, password: string, full_name?: string, phone?: string) => Promise<any>;
   logout: () => void;
   refreshToken: () => Promise<void>;
+  sendOtp: (email: string, password: string) => Promise<any>;
+  verifyLoginOtp: (email: string, otp: string) => Promise<any>;
+  sendRegisterOtp: (email: string) => Promise<any>;
+  verifyRegisterOtp: (email: string, otp: string, password: string, full_name?: string, phone?: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -66,8 +70,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
   }, []);
 
+  const sendOtp = useCallback(async (email: string, password: string) => {
+    const r = await api.post("/auth/otp/send", { email, password });
+    return r;
+  }, []);
+
+  const verifyLoginOtp = useCallback(async (email: string, otp: string) => {
+    const r = await api.post("/auth/otp/verify-login", { email, otp });
+    if (r.status === 200) {
+      localStorage.setItem("access_token", r.data.access_token);
+      if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
+      const u = r.data.user || { id: "", email, role: "user" };
+      localStorage.setItem("user", JSON.stringify(u));
+      setUser(u);
+    }
+    return r;
+  }, []);
+
+  const sendRegisterOtp = useCallback(async (email: string) => {
+    const r = await api.post("/auth/otp/send-register", { email });
+    return r;
+  }, []);
+
+  const verifyRegisterOtp = useCallback(async (email: string, otp: string, password: string, full_name?: string, phone?: string) => {
+    const r = await api.post("/auth/otp/verify-register", { email, otp, password, full_name, phone });
+    return r;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, authenticated: !!user, loading, login, register, logout, refreshToken }}>
+    <AuthContext.Provider value={{ user, authenticated: !!user, loading, login, register, logout, refreshToken, sendOtp, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp }}>
       {children}
     </AuthContext.Provider>
   );

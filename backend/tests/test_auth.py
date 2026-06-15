@@ -1,15 +1,16 @@
 import pytest
-from run import app as flask_app
+from app import create_app
 from app.models import db, Role
 
 @pytest.fixture
 def app():
-    flask_app.config.update({
+    # Create a fresh app instance with test config to avoid cross-test state
+    test_app = create_app({
         "TESTING": True,
         "SQLALCHEMY_DATABASE_URI": "sqlite:///:memory:",
         "MASTER_KEY": "test_master_key_32_bytes_long_123456"
     })
-    with flask_app.app_context():
+    with test_app.app_context():
         db.create_all()
         role_user = Role.query.filter_by(name="user").first()
         if not role_user:
@@ -18,7 +19,7 @@ def app():
         if not role_admin:
             db.session.add(Role(name="admin", permissions={}))
         db.session.commit()
-    yield flask_app
+    yield test_app
 
 def test_register_and_login(client):
     rv = client.post("/api/auth/register", json={"email":"bob@example.com", "password":"StrongPass!1"})

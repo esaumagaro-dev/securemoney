@@ -10,12 +10,17 @@ from .auth import bp as auth_bp
 from .routes.user import bp as user_bp
 from .routes.admin import bp as admin_bp
 from .routes.public import bp as public_bp
+from .routes.payments import bp as payments_bp
+from .routes.email_otp import bp as email_otp_bp
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
-def create_app():
+def create_app(config_overrides=None):
     app = Flask(__name__)
     app.config.from_object(Config)
+    # Allow callers (tests, scripts) to override configuration before initialization
+    if config_overrides:
+        app.config.update(config_overrides)
     CORS(app, origins=app.config.get("CORS_ORIGINS", "*"), supports_credentials=True)
     if not app.config.get("MASTER_KEY"):
         # In development allow but warn
@@ -28,4 +33,16 @@ def create_app():
     app.register_blueprint(user_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(public_bp)
+    app.register_blueprint(payments_bp)
+    app.register_blueprint(email_otp_bp)
+
+    with app.app_context():
+        from .models import Role
+        db.create_all()
+        role_names = ["user", "admin", "auditor", "support", "agent", "merchant"]
+        for name in role_names:
+            if not Role.query.filter_by(name=name).first():
+                db.session.add(Role(name=name, permissions={}))
+        db.session.commit()
+
     return app

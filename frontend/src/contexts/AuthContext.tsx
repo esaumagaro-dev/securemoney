@@ -45,15 +45,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = useCallback(async (email: string, password: string, mfa_token?: string) => {
     const body: any = { email, password };
     if (mfa_token) body.mfa_token = mfa_token;
-    const r = await api.post("/auth/login", body);
-    if (r.status === 200) {
-      localStorage.setItem("access_token", r.data.access_token);
-      if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
-      const u = r.data.user || { id: "", email, role: "user" };
-      localStorage.setItem("user", JSON.stringify(u));
-      setUser(u);
+    try {
+      const r = await api.post("/auth/login", body);
+      if (r.status === 200) {
+        localStorage.setItem("access_token", r.data.access_token);
+        if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
+        const u = r.data.user || { id: "", email, role: "user" };
+        localStorage.setItem("user", JSON.stringify(u));
+        setUser(u);
+      }
+      return r;
+    } catch (err: any) {
+      if (err.response?.status === 403) {
+        return err.response;
+      }
+      throw err;
     }
-    return r;
   }, []);
 
   const register = useCallback(async (email: string, password: string, full_name?: string, phone?: string) => {

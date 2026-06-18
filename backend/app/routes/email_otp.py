@@ -92,6 +92,10 @@ def verify_register_otp():
     if not data.get("password"):
         return jsonify({"msg": "Missing password"}), 400
 
+    password = data["password"]
+    if len(password) < 8:
+        return jsonify({"msg": "Password must be at least 8 characters"}), 400
+
     try:
         pass_hash = ph.hash(data["password"])
     except Exception as e:

@@ -61,11 +61,8 @@ def send_otp_email(email: str) -> bool:
     mail_from = current_app.config.get("MAIL_FROM", "noreply@securemoney.co.tz")
 
     if not api_key or api_key == "placeholder":
-        current_app.logger.warning(
-            f"SENDGRID_API_KEY not configured. "
-            f"OTP for {email}: {code} (would be sent via email)"
-        )
-        print(f"\n===== EMAIL OTP ({email}) =====\n{code}\n==============================\n")
+        current_app.logger.info(f"OTP sent to {email} (dev mode)")
+        print(f"\n===== OTP ({email}) =====\n{code}\n===========================\n")
         return True
 
     try:
@@ -95,5 +92,5 @@ def send_otp_email(email: str) -> bool:
         return True
     except Exception as e:
         current_app.logger.error(f"Failed to send OTP email to {email}: {e}")
-        print(f"\n===== EMAIL OTP (SendGrid failed, fallback - {email}) =====\n{code}\n===================================================\n")
+        print(f"\n===== OTP (SendGrid failed, fallback - {email}) =====\n{code}\n=============================================\n")
         return True

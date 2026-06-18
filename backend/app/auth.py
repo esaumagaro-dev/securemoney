@@ -70,6 +70,11 @@ def register():
     existing = User.query.filter_by(email=data["email"].lower()).first()
     if existing:
         return jsonify({"msg":"User exists"}), 400
+
+    password = data["password"]
+    if len(password) < 8:
+        return jsonify({"msg": "Password must be at least 8 characters"}), 400
+
     # Hash password with Argon2
     try:
         pass_hash = ph.hash(data["password"])

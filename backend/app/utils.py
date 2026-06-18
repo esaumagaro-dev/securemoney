@@ -2,7 +2,7 @@ from functools import wraps
 from flask import request, jsonify, current_app, g
 import jwt
 from .auth import load_jwt_keys
-from .models import User
+from .models import User, db
 
 def _decode_token(token):
     _, public = load_jwt_keys()

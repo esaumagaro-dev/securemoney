@@ -68,6 +68,11 @@ class Config:
     MAIL_FROM = os.getenv("MAIL_FROM", "noreply@securemoney.co.tz")
     MAILER_URL = os.getenv("MAILER_URL", "")
 
+    # Twilio (SMS OTP)
+    TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_FROM_NUMBER = os.getenv("TWILIO_FROM_NUMBER", "")
+
     # Feature flags (for gradual rollout / testing)
     FEATURE_MFA = os.getenv("FEATURE_MFA", "True").lower() in ("1", "true", "yes")
     FEATURE_EMAIL_OTP = os.getenv("FEATURE_EMAIL_OTP", "False").lower() in ("1", "true", "yes")

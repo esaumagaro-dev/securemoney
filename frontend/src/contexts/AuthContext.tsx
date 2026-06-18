@@ -19,6 +19,12 @@ interface AuthContextType {
   verifyLoginOtp: (email: string, otp: string) => Promise<any>;
   sendRegisterOtp: (email: string) => Promise<any>;
   verifyRegisterOtp: (email: string, otp: string, password: string, full_name?: string, phone?: string) => Promise<any>;
+  sendPhoneOtp: (phone: string, password: string) => Promise<any>;
+  verifyLoginPhoneOtp: (phone: string, otp: string) => Promise<any>;
+  sendRegisterPhoneOtp: (phone: string) => Promise<any>;
+  verifyRegisterPhoneOtp: (phone: string, otp: string, password: string, full_name?: string, email?: string) => Promise<any>;
+  sendPhoneVerification: () => Promise<any>;
+  verifyPhoneOtp: (otp: string) => Promise<any>;
 }
 
 const AuthContext = createContext<AuthContextType>(null!);
@@ -97,8 +103,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return r;
   }, []);
 
+  const sendPhoneOtp = useCallback(async (phone: string, password: string) => {
+    const r = await api.post("/auth/phone-otp/send", { phone, password });
+    return r;
+  }, []);
+
+  const verifyLoginPhoneOtp = useCallback(async (phone: string, otp: string) => {
+    const r = await api.post("/auth/phone-otp/verify-login", { phone, otp });
+    if (r.status === 200) {
+      localStorage.setItem("access_token", r.data.access_token);
+      if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
+      const u = r.data.user || { id: "", email: "", role: "user" };
+      localStorage.setItem("user", JSON.stringify(u));
+      setUser(u);
+    }
+    return r;
+  }, []);
+
+  const sendRegisterPhoneOtp = useCallback(async (phone: string) => {
+    const r = await api.post("/auth/phone-otp/send-register", { phone });
+    return r;
+  }, []);
+
+  const verifyRegisterPhoneOtp = useCallback(async (phone: string, otp: string, password: string, full_name?: string, email?: string) => {
+    const r = await api.post("/auth/phone-otp/verify-register", { phone, otp, password, full_name, email });
+    return r;
+  }, []);
+
+  const sendPhoneVerification = useCallback(async () => {
+    const r = await api.post("/auth/phone-otp/send-verification");
+    return r;
+  }, []);
+
+  const verifyPhoneOtp = useCallback(async (otp: string) => {
+    const r = await api.post("/auth/phone-otp/verify-phone", { otp });
+    return r;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, authenticated: !!user, loading, login, register, logout, refreshToken, sendOtp, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp }}>
+    <AuthContext.Provider value={{ user, authenticated: !!user, loading, login, register, logout, refreshToken, sendOtp, verifyLoginOtp, sendRegisterOtp, verifyRegisterOtp, sendPhoneOtp, verifyLoginPhoneOtp, sendRegisterPhoneOtp, verifyRegisterPhoneOtp, sendPhoneVerification, verifyPhoneOtp }}>
       {children}
     </AuthContext.Provider>
   );

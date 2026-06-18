@@ -5,19 +5,29 @@ __pycache__/
 .venv/
 venv/
 env/
+backend/.venv/
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/*.egg-info/
 
 # Database
 *.db
 *.sqlite
 instance/
+backend/dev.db
 
 # Environment
 .env
 .env.local
+.env.*.local
+backend/.env
 
 # Secrets / Keys
 *.pem
 *.key
+*.p12
+*.pfx
 
 # Node
 node_modules/
@@ -33,7 +43,8 @@ build/
 
 # Dev helpers (use terminal instead)
 test_otp.py
-start-services.ps1
+debug_register.py
+scrape*.py
 
 # OS
 .DS_Store

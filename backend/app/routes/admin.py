@@ -2,8 +2,10 @@ from flask import Blueprint, jsonify, request, g, current_app
 from ..models import User, Role, AuditLog, Transaction, Wallet, Notification, db
 from ..utils import jwt_required, roles_required
 from ..audit import audit_log
-from werkzeug.security import generate_password_hash
+from argon2 import PasswordHasher
 from decimal import Decimal
+
+ph = PasswordHasher()
 from datetime import datetime, timezone as dt_timezone, timedelta
 
 bp = Blueprint("admin", __name__, url_prefix="/api/admin")
@@ -231,7 +233,7 @@ def create_agent():
         return jsonify({"msg": "Email already in use"}), 400
     u = User(
         email=email,
-        password_hash=generate_password_hash(password),
+        password_hash=ph.hash(password),
         role_id=agent_role.id,
         full_name_encrypted=data.get("full_name"),
         phone_encrypted=data.get("phone")
@@ -274,7 +276,7 @@ def create_merchant():
         return jsonify({"msg": "Email already in use"}), 400
     u = User(
         email=email,
-        password_hash=generate_password_hash(password),
+        password_hash=ph.hash(password),
         role_id=merchant_role.id,
         full_name_encrypted=data.get("full_name"),
         phone_encrypted=data.get("phone")

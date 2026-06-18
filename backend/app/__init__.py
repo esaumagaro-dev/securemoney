@@ -1,6 +1,3 @@
-from dotenv import load_dotenv
-load_dotenv()
-
 from flask import Flask
 from flask_cors import CORS
 from .config import Config
@@ -12,10 +9,13 @@ from .routes.admin import bp as admin_bp
 from .routes.public import bp as public_bp
 from .routes.payments import bp as payments_bp
 from .routes.email_otp import bp as email_otp_bp
+from .routes.phone_otp import bp as phone_otp_bp
 import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 def create_app(config_overrides=None):
+    from dotenv import load_dotenv
+    load_dotenv()
     app = Flask(__name__)
     app.config.from_object(Config)
     # Allow callers (tests, scripts) to override configuration before initialization
@@ -35,6 +35,14 @@ def create_app(config_overrides=None):
     app.register_blueprint(public_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(email_otp_bp)
+    app.register_blueprint(phone_otp_bp)
+
+    # Apply rate limits after all blueprints registered
+    limiter = app.limiter
+    if limiter:
+        limiter.limit("10 per minute;100 per hour")(auth_bp)
+        limiter.limit("5 per minute;20 per hour")(email_otp_bp)
+        limiter.limit("5 per minute;20 per hour")(phone_otp_bp)
 
     with app.app_context():
         from .models import Role

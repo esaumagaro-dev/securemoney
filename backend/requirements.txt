@@ -17,3 +17,4 @@ uvicorn>=0.24
 pytest>=7.2
 pytest-flask>=1.2
 sendgrid>=6.11
+twilio>=8.0

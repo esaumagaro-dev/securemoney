@@ -1,3 +1,8 @@
+from dotenv import load_dotenv
+
+# Load .env BEFORE any Config/model import so env vars are available
+load_dotenv()
+
 from flask import Flask
 from flask_cors import CORS
 from .config import Config
@@ -14,8 +19,6 @@ import sentry_sdk
 from sentry_sdk.integrations.flask import FlaskIntegration
 
 def create_app(config_overrides=None):
-    from dotenv import load_dotenv
-    load_dotenv()
     app = Flask(__name__)
     app.config.from_object(Config)
     # Allow callers (tests, scripts) to override configuration before initialization

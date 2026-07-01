@@ -8,7 +8,7 @@ class Config:
     DEBUG = ENV != "production"
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or f"sqlite:///{os.path.join(os.path.dirname(__file__), '..', 'dev.db')}"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "sqlite:////tmp/dev.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Key management

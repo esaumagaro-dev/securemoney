@@ -49,7 +49,12 @@ def create_app(config_overrides=None):
 
     with app.app_context():
         from .models import Role
-        db.create_all()
+        from sqlalchemy.exc import OperationalError
+        try:
+            db.create_all()
+        except OperationalError:
+            db.session.rollback()
+            app.logger.info("Tables already exist, skipping create_all")
         role_names = ["user", "admin", "auditor", "support", "agent", "merchant"]
         for name in role_names:
             if not Role.query.filter_by(name=name).first():

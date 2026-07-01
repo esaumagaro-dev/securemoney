@@ -26,8 +26,6 @@ def verify_jwt_from_header():
 
 @bp.before_request
 def load_user():
-    if request.path == "/api/auth/refresh":
-        return
     payload = verify_jwt_from_header()
     if not payload:
         g.user = None

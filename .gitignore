@@ -54,5 +54,11 @@ Thumbs.db
 *.vbs
 *.bat
 
+# Project log files
+logs/
+
+# Kilo agent config
+.kilo/
+
 # Docker
 .docker/

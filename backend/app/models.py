@@ -1,5 +1,7 @@
+import hashlib
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import JSON, String
+from sqlalchemy.orm import validates
 import uuid
 from datetime import datetime, timezone as dt_timezone
 from .crypto import EncryptedType
@@ -22,9 +24,16 @@ class User(db.Model):
     password_hash = db.Column(db.String(512), nullable=False)
     full_name_encrypted = db.Column(EncryptedType, nullable=True)
     phone_encrypted = db.Column(EncryptedType, nullable=True)
+    phone_hash = db.Column(db.String(64), nullable=True, index=True)
     role_id = db.Column(String(36), db.ForeignKey("roles.id"))
     role = db.relationship("Role")
     mfa_enabled = db.Column(db.Boolean, default=False)
+
+    @validates('phone_encrypted')
+    def _set_phone_hash(self, key, value):
+        if value is not None:
+            self.phone_hash = hashlib.sha256(value.encode()).hexdigest()
+        return value
     mfa_secret_encrypted = db.Column(EncryptedType, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(dt_timezone.utc))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(dt_timezone.utc), onupdate=lambda: datetime.now(dt_timezone.utc))

@@ -50,6 +50,16 @@ from sqlalchemy.types import TypeDecorator, TEXT
 class EncryptedType(TypeDecorator):
     impl = TEXT
 
+    def _get_master_key(self):
+        mk = current_app.config.get('MASTER_KEY')
+        if not mk:
+            mk = "insecure-dev-key-32bytes!!1234567890"
+            import warnings
+            warnings.warn("MASTER_KEY not set; using insecure dev fallback")
+        if isinstance(mk, str):
+            mk = mk.encode()
+        return mk
+
     def process_bind_param(self, value, dialect):
         if value is None:
             return None
@@ -57,18 +67,14 @@ class EncryptedType(TypeDecorator):
             value_bytes = value.encode()
         else:
             value_bytes = value
-        master_key = current_app.config['MASTER_KEY']
-        if isinstance(master_key, str):
-            master_key = master_key.encode()
+        master_key = self._get_master_key()
         ciphertext, meta = encrypt_bytes(value_bytes, master_key, current_app.config['PBKDF2_ITERATIONS'])
         return pack_encrypted(ciphertext, meta)
 
     def process_result_value(self, value, dialect):
         if value is None:
             return None
-        master_key = current_app.config['MASTER_KEY']
-        if isinstance(master_key, str):
-            master_key = master_key.encode()
+        master_key = self._get_master_key()
         cipher, meta = unpack_encrypted(value)
         plaintext = decrypt_bytes(cipher, meta, master_key, current_app.config['PBKDF2_ITERATIONS'])
         try:

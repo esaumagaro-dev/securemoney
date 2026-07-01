@@ -1,3 +1,4 @@
+import hashlib
 from flask import Blueprint, request, jsonify, current_app
 from ..models import db, User, Role, Wallet
 from ..sms_service import send_sms_otp, verify_phone_otp, normalize_phone
@@ -16,7 +17,8 @@ def send_otp():
         return jsonify({"msg": "Missing phone or password"}), 400
 
     phone = normalize_phone(data["phone"])
-    user = User.query.filter_by(phone_encrypted=phone).first()
+    phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+    user = User.query.filter_by(phone_hash=phone_hash).first()
     if not user:
         return jsonify({"msg": "Invalid credentials"}), 401
 
@@ -43,7 +45,8 @@ def verify_login_otp():
     if not verify_phone_otp(phone, data["otp"]):
         return jsonify({"msg": "Invalid or expired OTP"}), 401
 
-    user = User.query.filter_by(phone_encrypted=phone).first()
+    phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+    user = User.query.filter_by(phone_hash=phone_hash).first()
     if not user:
         return jsonify({"msg": "User not found"}), 404
 
@@ -66,7 +69,8 @@ def send_register_otp():
         return jsonify({"msg": "Missing phone number"}), 400
 
     phone = normalize_phone(data["phone"])
-    existing = User.query.filter_by(phone_encrypted=phone).first()
+    phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+    existing = User.query.filter_by(phone_hash=phone_hash).first()
     if existing:
         return jsonify({"msg": "Phone already registered"}), 400
 
@@ -88,7 +92,8 @@ def verify_register_otp():
     if not verify_phone_otp(phone, data["otp"]):
         return jsonify({"msg": "Invalid or expired OTP"}), 401
 
-    existing = User.query.filter_by(phone_encrypted=phone).first()
+    phone_hash = hashlib.sha256(phone.encode()).hexdigest()
+    existing = User.query.filter_by(phone_hash=phone_hash).first()
     if existing:
         return jsonify({"msg": "Phone already registered"}), 400
 

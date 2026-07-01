@@ -12,4 +12,4 @@ RUN addgroup --system app && adduser --system --ingroup app app
 USER app
 
 EXPOSE 8000
-CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+CMD gunicorn run:app --bind 0.0.0.0:${PORT:-8000} --workers 2

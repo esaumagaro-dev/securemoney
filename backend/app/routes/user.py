@@ -48,9 +48,18 @@ def transfer():
         return jsonify({"msg":"Unauthorized"}), 401
     data = request.json
     from_wallet = Wallet.query.filter_by(id=data.get("from_wallet"), user_id=g.user.id).first()
+    if not from_wallet:
+        return jsonify({"msg":"Invalid source wallet"}), 400
     to_wallet = Wallet.query.filter_by(id=data.get("to_wallet")).first()
-    if not from_wallet or not to_wallet:
-        return jsonify({"msg":"Invalid wallets"}), 400
+    if not to_wallet:
+        recipient = User.query.filter_by(email=data.get("to_wallet").lower()).first()
+        if not recipient:
+            return jsonify({"msg":"Recipient not found"}), 404
+        to_wallet = Wallet.query.filter_by(user_id=recipient.id).first()
+        if not to_wallet:
+            return jsonify({"msg":"Recipient has no wallet"}), 400
+    if from_wallet.id == to_wallet.id:
+        return jsonify({"msg":"Cannot send to yourself"}), 400
     amount = data.get("amount")
     try:
         from_balance = Decimal(from_wallet.balance_encrypted)
@@ -65,8 +74,11 @@ def transfer():
         tx = Transaction(from_wallet_id=from_wallet.id, to_wallet_id=to_wallet.id, amount_encrypted=str(amount_dec), currency=from_wallet.currency, type="transfer", status="completed")
         db.session.add(tx)
         db.session.commit()
+        recipient_user = to_wallet.user
         audit_log(g.user.id, "transfer", "transaction", tx.id, {"amount": str(amount_dec), "from": from_wallet.id, "to": to_wallet.id})
         _create_notification(g.user.id, "transfer", f"Transfer of {amount_dec} {from_wallet.currency} completed", tx.id)
+        if recipient_user:
+            _create_notification(recipient_user.id, "transfer", f"Received {amount_dec} {from_wallet.currency} from {g.user.email}", tx.id)
     except Exception as e:
         db.session.rollback()
         return jsonify({"msg":"Transfer failed"}), 500

@@ -9,7 +9,18 @@ from .email_service import send_otp_email
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
-ph = PasswordHasher()
+def _make_ph():
+    from flask import current_app
+    try:
+        return PasswordHasher(
+            time_cost=current_app.config.get("ARGON2_TIME_COST", 3),
+            memory_cost=current_app.config.get("ARGON2_MEMORY_COST", 65536),
+            parallelism=current_app.config.get("ARGON2_PARALLELISM", 4),
+        )
+    except RuntimeError:
+        return PasswordHasher()
+
+ph = _make_ph()
 
 _jwt_keys_cache = {"private": None, "public": None}
 
@@ -109,6 +120,8 @@ def login():
     try:
         ph.verify(user.password_hash, data["password"])
     except argon_exceptions.VerifyMismatchError:
+        return jsonify({"msg":"Invalid credentials"}), 401
+    except argon_exceptions.VerificationError:
         return jsonify({"msg":"Invalid credentials"}), 401
     # If TOTP required, check presence of totp token in request
     if user.mfa_enabled:

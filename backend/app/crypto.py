@@ -51,7 +51,11 @@ class EncryptedType(TypeDecorator):
     def _get_master_key(self):
         mk = current_app.config.get('MASTER_KEY')
         if not mk:
-            raise RuntimeError("MASTER_KEY is not configured. Set MASTER_KEY in environment or config.")
+            sk = current_app.config.get('SECRET_KEY', 'dev-secret-change-me')
+            if isinstance(sk, str):
+                sk = sk.encode()
+            current_app.logger.warning("MASTER_KEY not set — deriving encryption key from SECRET_KEY (set MASTER_KEY for production)")
+            mk = sk.ljust(32, b'\0')[:32]
         if isinstance(mk, str):
             mk = mk.encode()
         return mk

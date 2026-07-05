@@ -153,4 +153,3 @@ def mark_notifications_read():
 def _create_notification(user_id, ntype, message, resource_id=None):
     n = Notification(user_id=user_id, type=ntype, message=message, resource_id=resource_id)
     db.session.add(n)
-    db.session.commit()

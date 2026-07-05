@@ -4,15 +4,13 @@ import json
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Hash import SHA512
 from typing import Tuple
 
 from flask import current_app
 
 # Derive a per-record data key using PBKDF2-HMAC-SHA512
 def derive_data_key(master_key: bytes, salt: bytes, iterations: int) -> bytes:
-    # PBKDF2-HMAC-SHA512 -> produce 32 bytes key for AES-256
-    # Note: PyCryptodome PBKDF2 defaults to HMAC-SHA1 if hmac_hash_module is None; pass sha256
-    from Crypto.Hash import SHA512
     return PBKDF2(master_key, salt, dkLen=32, count=iterations, hmac_hash_module=SHA512)
 
 def encrypt_bytes(plaintext: bytes, master_key: bytes, iterations: int) -> Tuple[bytes, dict]:
@@ -53,9 +51,7 @@ class EncryptedType(TypeDecorator):
     def _get_master_key(self):
         mk = current_app.config.get('MASTER_KEY')
         if not mk:
-            mk = "insecure-dev-key-32bytes!!1234567890"
-            import warnings
-            warnings.warn("MASTER_KEY not set; using insecure dev fallback")
+            raise RuntimeError("MASTER_KEY is not configured. Set MASTER_KEY in environment or config.")
         if isinstance(mk, str):
             mk = mk.encode()
         return mk
@@ -68,7 +64,7 @@ class EncryptedType(TypeDecorator):
         else:
             value_bytes = value
         master_key = self._get_master_key()
-        ciphertext, meta = encrypt_bytes(value_bytes, master_key, current_app.config['PBKDF2_ITERATIONS'])
+        ciphertext, meta = encrypt_bytes(value_bytes, master_key, current_app.config.get('PBKDF2_ITERATIONS', 200000))
         return pack_encrypted(ciphertext, meta)
 
     def process_result_value(self, value, dialect):
@@ -76,7 +72,7 @@ class EncryptedType(TypeDecorator):
             return None
         master_key = self._get_master_key()
         cipher, meta = unpack_encrypted(value)
-        plaintext = decrypt_bytes(cipher, meta, master_key, current_app.config['PBKDF2_ITERATIONS'])
+        plaintext = decrypt_bytes(cipher, meta, master_key, current_app.config.get('PBKDF2_ITERATIONS', 200000))
         try:
             return plaintext.decode()
         except:

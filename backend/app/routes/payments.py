@@ -3,7 +3,7 @@ from ..models import db, User, Wallet, Transaction, Notification
 from ..utils import jwt_required
 from ..audit import audit_log
 from decimal import Decimal
-import uuid, random, string
+import uuid, random, string, json
 from datetime import datetime, timezone as dt_timezone
 
 bp = Blueprint("payments", __name__, url_prefix="/api/payments")
@@ -22,7 +22,6 @@ def _get_or_create_wallet(user, currency="TZS"):
 def _create_notification(user_id, ntype, message, resource_id=None):
     n = Notification(user_id=user_id, type=ntype, message=message, resource_id=resource_id)
     db.session.add(n)
-    db.session.commit()
 
 @bp.route("/deposit", methods=["POST"])
 @jwt_required
@@ -45,12 +44,12 @@ def deposit():
         currency=currency,
         type="deposit",
         status="completed",
-        meta_encrypted=f'{{"ref":"{ref}","method":"{method}"}}'
+        meta_encrypted=json.dumps({"ref": ref, "method": method})
     )
     db.session.add(tx)
+    _create_notification(g.user.id, "deposit", f"Deposit of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     db.session.commit()
     audit_log(g.user.id, "deposit", "transaction", tx.id, {"amount": str(amount_dec), "ref": ref, "method": method})
-    _create_notification(g.user.id, "deposit", f"Deposit of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     return jsonify({
         "msg": "Deposit completed",
         "ref": ref,
@@ -84,12 +83,12 @@ def withdraw():
         currency=currency,
         type="withdraw",
         status="completed",
-        meta_encrypted=f'{{"ref":"{ref}","method":"{method}"}}'
+        meta_encrypted=json.dumps({"ref": ref, "method": method})
     )
     db.session.add(tx)
+    _create_notification(g.user.id, "withdraw", f"Withdrawal of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     db.session.commit()
     audit_log(g.user.id, "withdraw", "transaction", tx.id, {"amount": str(amount_dec), "ref": ref})
-    _create_notification(g.user.id, "withdraw", f"Withdrawal of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     return jsonify({
         "msg": "Withdrawal completed",
         "ref": ref,
@@ -125,12 +124,12 @@ def airtime():
         currency=currency,
         type="airtime",
         status="completed",
-        meta_encrypted=f'{{"ref":"{ref}","phone":"{phone}","provider":"{provider}"}}'
+        meta_encrypted=json.dumps({"ref": ref, "phone": phone, "provider": provider})
     )
     db.session.add(tx)
+    _create_notification(g.user.id, "airtime", f"Airtime of {amount_dec} {currency} sent to {phone}. Ref: {ref}", tx.id)
     db.session.commit()
     audit_log(g.user.id, "airtime", "transaction", tx.id, {"amount": str(amount_dec), "phone": phone})
-    _create_notification(g.user.id, "airtime", f"Airtime of {amount_dec} {currency} sent to {phone}. Ref: {ref}", tx.id)
     return jsonify({
         "msg": "Airtime purchase completed",
         "ref": ref,
@@ -167,12 +166,12 @@ def bill_payment():
         currency=currency,
         type="bill_payment",
         status="completed",
-        meta_encrypted=f'{{"ref":"{ref}","bill_ref":"{bill_ref}","bill_type":"{bill_type}"}}'
+        meta_encrypted=json.dumps({"ref": ref, "bill_ref": bill_ref, "bill_type": bill_type})
     )
     db.session.add(tx)
+    _create_notification(g.user.id, "bill_payment", f"Bill payment of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     db.session.commit()
     audit_log(g.user.id, "bill_payment", "transaction", tx.id, {"amount": str(amount_dec), "bill_ref": bill_ref})
-    _create_notification(g.user.id, "bill_payment", f"Bill payment of {amount_dec} {currency} completed. Ref: {ref}", tx.id)
     return jsonify({
         "msg": "Bill payment completed",
         "ref": ref,
@@ -207,12 +206,12 @@ def merchant_payment():
         currency=currency,
         type="merchant_payment",
         status="completed",
-        meta_encrypted=f'{{"ref":"{ref}","merchant_id":"{merchant_id}"}}'
+        meta_encrypted=json.dumps({"ref": ref, "merchant_id": merchant_id})
     )
     db.session.add(tx)
+    _create_notification(g.user.id, "merchant_payment", f"Merchant payment of {amount_dec} {currency} to {merchant_id}. Ref: {ref}", tx.id)
     db.session.commit()
     audit_log(g.user.id, "merchant_payment", "transaction", tx.id, {"amount": str(amount_dec), "merchant_id": merchant_id})
-    _create_notification(g.user.id, "merchant_payment", f"Merchant payment of {amount_dec} {currency} to {merchant_id}. Ref: {ref}", tx.id)
     return jsonify({
         "msg": "Merchant payment completed",
         "ref": ref,

@@ -26,6 +26,8 @@ def send_otp():
         ph.verify(user.password_hash, data["password"])
     except argon_exceptions.VerifyMismatchError:
         return jsonify({"msg": "Invalid credentials"}), 401
+    except argon_exceptions.VerificationError:
+        return jsonify({"msg": "Invalid credentials"}), 401
 
     sent = send_sms_otp(phone)
     if not sent:
@@ -116,8 +118,6 @@ def verify_register_otp():
     )
     if data.get("full_name"):
         user.full_name_encrypted = data["full_name"]
-    if data.get("email"):
-        user.email = data["email"].lower()
 
     role = Role.query.filter_by(name="user").first()
     user.role = role

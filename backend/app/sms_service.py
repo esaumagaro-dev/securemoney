@@ -81,7 +81,7 @@ def send_sms_otp(phone: str) -> bool:
     except Exception as e:
         current_app.logger.error(f"Failed to send SMS to {phone}: {e}")
         print(f"\n===== SMS OTP (Twilio failed, fallback - {phone}) =====\n{code}\n================================================\n")
-        return True
+        return False
 
 def normalize_phone(phone: str) -> str:
     cleaned = re.sub(r"[^0-9+]", "", phone.strip())

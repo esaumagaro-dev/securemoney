@@ -32,7 +32,12 @@ api.interceptors.response.use(
           if (r.data.refresh_token) localStorage.setItem("refresh_token", r.data.refresh_token);
           original.headers.Authorization = `Bearer ${r.data.access_token}`;
           return api(original);
-        } catch {}
+        } catch {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            localStorage.removeItem("user");
+            window.location.href = "/login";
+          }
       }
     }
     return Promise.reject(error);

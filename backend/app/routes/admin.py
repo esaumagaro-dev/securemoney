@@ -16,7 +16,7 @@ bp = Blueprint("admin", __name__, url_prefix="/api/admin")
 def list_users():
     # basic pagination
     page = int(request.args.get("page", 1))
-    per_page = min(int(request.args.get("per_page", current_app.config['DEFAULT_PAGE_SIZE'])), current_app.config['MAX_PAGE_SIZE'])
+    per_page = min(int(request.args.get("per_page", current_app.config.get('DEFAULT_PAGE_SIZE', 25))), current_app.config.get('MAX_PAGE_SIZE', 200))
     q = User.query.paginate(page=page, per_page=per_page, error_out=False)
     items = []
     for u in q.items:
@@ -53,7 +53,7 @@ def create_role():
 @roles_required(["admin", "auditor"])
 def get_audit():
     page = int(request.args.get("page", 1))
-    per_page = min(int(request.args.get("per_page", current_app.config['DEFAULT_PAGE_SIZE'])), current_app.config['MAX_PAGE_SIZE'])
+    per_page = min(int(request.args.get("per_page", current_app.config.get('DEFAULT_PAGE_SIZE', 25))), current_app.config.get('MAX_PAGE_SIZE', 200))
     action_filter = request.args.get("action")
     q = AuditLog.query.order_by(AuditLog.created_at.desc())
     if action_filter:

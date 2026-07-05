@@ -9,18 +9,16 @@ from .email_service import send_otp_email
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
-def _make_ph():
-    from flask import current_app
+def get_ph():
     try:
+        from flask import current_app
         return PasswordHasher(
             time_cost=current_app.config.get("ARGON2_TIME_COST", 3),
             memory_cost=current_app.config.get("ARGON2_MEMORY_COST", 65536),
             parallelism=current_app.config.get("ARGON2_PARALLELISM", 4),
         )
-    except RuntimeError:
+    except (RuntimeError, KeyError):
         return PasswordHasher()
-
-ph = _make_ph()
 
 _jwt_keys_cache = {"private": None, "public": None}
 
@@ -88,7 +86,7 @@ def register():
 
     # Hash password with Argon2
     try:
-        pass_hash = ph.hash(data["password"])
+        pass_hash = get_ph().hash(data["password"])
     except Exception as e:
         return jsonify({"msg":"Failed to hash password"}), 500
     user = User(email=data["email"].lower(), password_hash=pass_hash)
@@ -118,7 +116,7 @@ def login():
     if not user:
         return jsonify({"msg":"Invalid credentials"}), 401
     try:
-        ph.verify(user.password_hash, data["password"])
+        get_ph().verify(user.password_hash, data["password"])
     except argon_exceptions.VerifyMismatchError:
         return jsonify({"msg":"Invalid credentials"}), 401
     except argon_exceptions.VerificationError:
@@ -129,8 +127,10 @@ def login():
         if not token:
             return jsonify({"mfa_required": True, "msg":"MFA required"}), 403
         secret = user.mfa_secret_encrypted
+        if not secret:
+            return jsonify({"msg":"MFA not configured"}), 400
         totp = pyotp.TOTP(secret)
-        if not totp.verify(token, valid_window=1):
+        if not totp.verify(token, valid_window=0):
             return jsonify({"msg":"Invalid MFA token"}), 403
     # Email OTP as second factor (if enabled and TOTP is not enabled)
     elif current_app.config.get("FEATURE_EMAIL_OTP", False):

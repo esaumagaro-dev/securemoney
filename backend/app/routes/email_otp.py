@@ -22,6 +22,8 @@ def send_otp():
         ph.verify(user.password_hash, data["password"])
     except argon_exceptions.VerifyMismatchError:
         return jsonify({"msg": "Invalid credentials"}), 401
+    except argon_exceptions.VerificationError:
+        return jsonify({"msg": "Invalid credentials"}), 401
 
     sent = send_otp_email(user.email)
     if not sent:

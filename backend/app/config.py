@@ -8,7 +8,7 @@ class Config:
     DEBUG = ENV != "production"
 
     # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "sqlite:////tmp/dev.db"
+    SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL") or "sqlite:///dev.db"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Key management
@@ -34,7 +34,7 @@ class Config:
 
     # Rate limiting / Redis
     RATELIMIT_HEADERS_ENABLED = True
-    REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
     # Default rate limits (used if you wire them into your limiter setup)
     DEFAULT_RATE_LIMIT = os.getenv("DEFAULT_RATE_LIMIT", "200 per day;50 per hour")
     AUTH_RATE_LIMIT = os.getenv("AUTH_RATE_LIMIT", "10 per minute;100 per hour")

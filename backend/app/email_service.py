@@ -93,4 +93,4 @@ def send_otp_email(email: str) -> bool:
     except Exception as e:
         current_app.logger.error(f"Failed to send OTP email to {email}: {e}")
         print(f"\n===== OTP (SendGrid failed, fallback - {email}) =====\n{code}\n=============================================\n")
-        return True
+        return False

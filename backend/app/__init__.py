@@ -26,8 +26,9 @@ def create_app(config_overrides=None):
         app.config.update(config_overrides)
     CORS(app, origins=app.config.get("CORS_ORIGINS", "*"), supports_credentials=True)
     if not app.config.get("MASTER_KEY"):
-        # In development allow but warn
-        app.logger.warning("MASTER_KEY is not set; using insecure default for development")
+        if app.config.get("ENV") == "production":
+            raise RuntimeError("MASTER_KEY is required in production. Set MASTER_KEY environment variable.")
+        app.logger.warning("MASTER_KEY is not set; encryption will fail at runtime")
     db.init_app(app)
     init_limiter(app)
     if app.config.get("SENTRY_DSN"):

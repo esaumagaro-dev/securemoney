@@ -1,4 +1,5 @@
 from dotenv import load_dotenv
+import os
 
 # Load .env BEFORE any Config/model import so env vars are available
 load_dotenv()
@@ -47,8 +48,9 @@ def create_app(config_overrides=None):
         limiter.limit("5 per minute;20 per hour")(phone_otp_bp)
 
     with app.app_context():
-        from .models import Role
+        from .models import Role, User
         from sqlalchemy.exc import OperationalError
+        from argon2 import PasswordHasher
         try:
             db.create_all()
         except OperationalError:
@@ -59,5 +61,20 @@ def create_app(config_overrides=None):
             if not Role.query.filter_by(name=name).first():
                 db.session.add(Role(name=name, permissions={}))
         db.session.commit()
+        admin_email = os.environ.get("ADMIN_EMAIL", "admin@securemoney.com")
+        admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@123456")
+        if not User.query.filter_by(email=admin_email).first():
+            admin_role = Role.query.filter_by(name="admin").first()
+            if admin_role:
+                ph = PasswordHasher()
+                user = User(
+                    email=admin_email,
+                    password_hash=ph.hash(admin_password),
+                    role_id=admin_role.id,
+                    full_name_encrypted="Admin User"
+                )
+                db.session.add(user)
+                db.session.commit()
+                app.logger.info(f"Default admin user created: {admin_email}")
 
     return app

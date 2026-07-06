@@ -63,7 +63,10 @@ def create_app(config_overrides=None):
         db.session.commit()
         admin_email = os.environ.get("ADMIN_EMAIL", "admin@securemoney.com")
         admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@123456")
-        if not User.query.filter_by(email=admin_email).first():
+        existing = User.query.filter_by(email=admin_email).first()
+        if existing:
+            app.logger.info(f"Admin user already exists: {admin_email}")
+        else:
             admin_role = Role.query.filter_by(name="admin").first()
             if admin_role:
                 ph = PasswordHasher()
@@ -75,6 +78,8 @@ def create_app(config_overrides=None):
                 )
                 db.session.add(user)
                 db.session.commit()
-                app.logger.info(f"Default admin user created: {admin_email}")
+                app.logger.info(f"Default admin user created: {admin_email} / {admin_password}")
+            else:
+                app.logger.error("Admin role not found - cannot create admin user")
 
     return app

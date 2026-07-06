@@ -46,7 +46,7 @@ class Config:
     REMEMBER_COOKIE_DURATION = timedelta(days=int(os.getenv("REMEMBER_COOKIE_DAYS", "30")))
 
     # CORS - keep strict allowlist in production
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,https://authentic-inspiration-production-f0d4.up.railway.app").split(",")
 
     # Monitoring / Sentry
     SENTRY_DSN = os.getenv("SENTRY_DSN", "")
